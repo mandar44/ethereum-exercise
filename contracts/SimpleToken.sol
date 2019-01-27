@@ -1,4 +1,5 @@
 pragma solidity >=0.4.21 < 0.6.0;
+pragma experimental ABIEncoderV2;
 
 // ERC20 Token
 contract SimpleToken {
@@ -6,6 +7,7 @@ contract SimpleToken {
     //create an array with all balances
     mapping (address => int) public balances;
     address payable public owner;
+    address[] transferedTo; // addresses of accounts that have tokens transfered to
     int public initialSupply = 5400000; // initialize supply to 5400000 units (tokens)
 
     // log the transfer coin from one address to another
@@ -17,15 +19,18 @@ contract SimpleToken {
     }
 
     // send coin from account to account and return amount of tokens transfered
-    function transferCoin(address reciever, int amount) public returns (int token) {
-        // If the amount is more than what user is trying to send, return sufficient = false
-        // amount is in Eth, convert to tokens to sent to acc
+    function transferCoin(address reciever, uint amount) public returns (int token) {
+
+        // amount is in Eth, convert to tokens and check if sender has enough tokens
         int tokens = convertToTokens(amount, 15400);
         bool valid = validateTransaction(tokens);
 
         if( valid == true ) {
-            balances[msg.sender] -= int(tokens);
-            balances[reciever] += int(tokens);
+            balances[msg.sender] -= tokens;
+            balances[reciever] += tokens;
+
+            // add reciever account to array of accounts
+            transferedTo.push(reciever);
             emit TransferToken(msg.sender, reciever, tokens);
             return int(tokens);
         } else {
@@ -40,9 +45,9 @@ contract SimpleToken {
         else return true;
     }
 
-    function convertToTokens(int amount, int conversionRate) public pure returns (int convertedVal) {
+    function convertToTokens(uint amount, int conversionRate) public pure returns (int convertedVal) {
         // multiply by the conversion rate to get value of tokens equivalent to amount of ether sent
-        return amount * conversionRate;
+        return int(amount) * conversionRate;
     }
 
     // show account balance
@@ -53,6 +58,11 @@ contract SimpleToken {
     // get contract description
     function getContractDescription() public view returns (address) {
         return address(msg.sender);
+    }
+
+    // return all addresses that have tokens transfered to them
+    function getAllEthAddresses() public view returns (address[] memory) {
+        return transferedTo;
     }
 
 }
